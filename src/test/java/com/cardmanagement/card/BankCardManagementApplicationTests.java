@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
@@ -19,44 +20,48 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URI;
 import java.util.List;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Import(SecurityConfig.class)
 class BankCardManagementApplicationTests {
     @Autowired
     private MockMvc mockMvc;
 
     @Test
     void shouldReturnCashCardWhenDataIsSaved() throws Exception {
-        mockMvc.perform(get("/cashcards/99"))
+        mockMvc.perform(get("/cashcards/99").with(httpBasic("sarah1","abc123")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(99L));
     }
     @Test
     void shouldNotReturnCashCardWithUnknownId() throws Exception{
-        mockMvc.perform(get("/cashcards/1000")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/cashcards/1000").with(httpBasic("sarah1","abc123")))
+                .andExpect(status().isNotFound());
     }
     @Test
     void shouldCreateNewBankCard() throws Exception {
-        CashCard cashCard = new CashCard(null, 250.00);
+        CashCard cashCard = new CashCard(null, 250.00,"sarah1");
         String cashCardJSON = new ObjectMapper().writeValueAsString(cashCard);
-        MvcResult result = mockMvc.perform(post("/cashcards")
+        MvcResult result = mockMvc.perform(post("/cashcards").with(user("sarah1").password("abc123").roles("CARD-OWNER"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(cashCardJSON))
                 .andExpect(status().isCreated())
                 .andReturn();
         String locationHeader = result.getResponse().getHeader("Location");
-        mockMvc.perform(get(locationHeader))
+        mockMvc.perform(get(locationHeader).with(httpBasic("sarah1","abc123")))
                 .andExpect(status().isOk());
 
     }
     @Test
     void shouldReturnAllCashCardsWhenListIsRequested() throws Exception {
-        MvcResult result = mockMvc.perform(get("/cashcards"))
+        MvcResult result = mockMvc.perform(get("/cashcards").with(httpBasic("sarah1","abc123")))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -78,7 +83,7 @@ class BankCardManagementApplicationTests {
 
     @Test
     void shouldReturnAPageOfCashCards() throws Exception{
-        MvcResult result = mockMvc.perform(get("/cashcards?page=0&size=3"))
+        MvcResult result = mockMvc.perform(get("/cashcards?page=0&size=3").with(httpBasic("sarah1","abc123")))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -89,7 +94,7 @@ class BankCardManagementApplicationTests {
     }
     @Test
     void shouldReturnASortedPageOfCashCards() throws Exception{
-       MvcResult result = mockMvc.perform(get("/cashcards?page=0&size=1&sort=amount,desc"))
+       MvcResult result = mockMvc.perform(get("/cashcards?page=0&size=1&sort=amount,desc").with(httpBasic("sarah1","abc123")))
                .andExpect(status().isOk())
                .andReturn();
         DocumentContext documentContext = JsonPath.parse(result.getResponse().getContentAsString());
@@ -102,7 +107,7 @@ class BankCardManagementApplicationTests {
     }
     @Test
     void shouldReturnASortedPageOfCashCardsWithNoParametersAndUseDefaultValues() throws Exception{
-        MvcResult result = mockMvc.perform(get("/cashcards"))
+        MvcResult result = mockMvc.perform(get("/cashcards").with(httpBasic("sarah1","abc123")))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -112,5 +117,24 @@ class BankCardManagementApplicationTests {
 
         JSONArray amounts = documentContext.read("$..amount");
         assertThat(amounts).containsExactly(1.00, 123.45, 150.00);
+    }
+    @Test
+    void shouldNotReturnBankCardWhenUsingBadCredentials() throws Exception{
+        MvcResult result = mockMvc.perform(get("/cashcards").with(httpBasic("Elias","Badboy")))
+                .andExpect(status().isUnauthorized())
+                .andReturn();
+
+    }
+    @Test
+    void shouldRejectUsersWhoAreNotCardOwners() throws Exception{
+        MvcResult result = mockMvc.perform(get("/cashcards/99").with(httpBasic("hank-owns-no-cards","qrs456")))
+                .andExpect(status().isForbidden())
+                .andReturn();
+    }
+    @Test
+    void shouldNotAllowAccessToBankCardsTheyDoNotOwn() throws Exception{
+        MvcResult result = mockMvc.perform(get("/cashcards/102").with(httpBasic("sarah1","abc123")))
+                .andExpect(status().isNotFound())
+                .andReturn();
     }
 }

@@ -1,4 +1,10 @@
 package com.cardmanagement.card;
+import org.springframework.data.domain.Page;
 import org.springframework.data.repository.CrudRepository;
-public interface CashCardRepository extends CrudRepository<CashCard,Long>{
+import org.springframework.data.repository.PagingAndSortingRepository;
+
+import java.awt.print.Pageable;
+
+public interface CashCardRepository extends CrudRepository<CashCard,Long>, PagingAndSortingRepository<CashCard,Long> {
+
 }

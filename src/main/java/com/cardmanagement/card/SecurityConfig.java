@@ -16,10 +16,16 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    //Security configuration for the application
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        //authorizeHttpRequests method is used to define the security rules for the application
+        //permitAll() method is used to allow all users to access the /createuser endpoint
+        //hasRole() method is used to restrict access to the /cashcards/** endpoint to users with the role CARD-OWNER
         http
                 .authorizeHttpRequests(request -> request
+                        .requestMatchers("/createuser").permitAll()
                         .requestMatchers("/cashcards/**")
                         .hasRole("CARD-OWNER"))
                 .httpBasic(Customizer.withDefaults())
@@ -28,10 +34,13 @@ public class SecurityConfig {
     }
 
     @Bean
+    //PasswordEncoder bean is used to encode the password of the users
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
     @Bean
+    //testOnlyUsers method is used to create test users for the application
+
     UserDetailsService testOnlyUsers(PasswordEncoder passwordEncoder) {
         User.UserBuilder users = User.builder();
         UserDetails sarah = users
@@ -50,5 +59,16 @@ public class SecurityConfig {
                 .roles("CARD-OWNER")
                 .build();
         return new InMemoryUserDetailsManager(sarah, hankOwnsNoCards,kumar);
+    }
+    //createUser method is used to create a new user with the specified username, password, and role
+    public UserDetails createUser(String username, String password, String role) {
+        InMemoryUserDetailsManager userDetailsService = (InMemoryUserDetailsManager) testOnlyUsers(passwordEncoder());
+        UserDetails newUser = User.builder()
+                .username(username)
+                .password(passwordEncoder().encode(password))
+                .roles(role)
+                .build();
+        userDetailsService.createUser(newUser);
+        return newUser;
     }
 }

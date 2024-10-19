@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub'
+        DOCKERHUB_REPO = 'elkkuelias/springrest'
+        DOCKER_IMAGE_TAG = 'latest'
+    }
     tools {
         gradle 'Gradle'
         jdk 'JDK21'

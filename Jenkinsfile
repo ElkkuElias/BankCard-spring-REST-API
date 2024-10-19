@@ -15,13 +15,13 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'gradle clean build'
+                bat 'gradlew.bat clean build'
             }
         }
 
         stage('Test') {
             steps {
-                sh 'gradle test'
+                bat 'gradlew.bat test'
             }
             post {
                 always {
@@ -32,7 +32,7 @@ pipeline {
 
         stage('Code Coverage') {
             steps {
-                sh 'gradle jacocoTestReport'
+                bat 'gradlew.bat jacocoTestReport'
                 jacoco(
                     execPattern: '**/build/jacoco/*.exec',
                     classPattern: '**/build/classes/java/main',
@@ -43,19 +43,20 @@ pipeline {
 
         stage('Static Code Analysis') {
             steps {
-                sh 'gradle sonarqube'
+                bat 'gradlew.bat sonarqube'
             }
         }
 
         stage('Package') {
             steps {
-                sh 'gradle bootJar'
+                bat 'gradlew.bat bootJar'
             }
         }
 
         stage('Deploy') {
             steps {
-            echo 'Deploying the application'
+                echo 'Deploying...'
+                // Add your deployment steps here
             }
         }
     }

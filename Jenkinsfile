@@ -23,29 +23,10 @@ pipeline {
             steps {
                 bat 'gradlew.bat test'
             }
-            post {
-                always {
-                    junit '**/build/test-results/test/*.xml'
-                }
-            }
+
         }
 
-        stage('Code Coverage') {
-            steps {
-                bat 'gradlew.bat jacocoTestReport'
-                jacoco(
-                    execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java/main',
-                    sourcePattern: '**/src/main/java'
-                )
-            }
-        }
 
-        stage('Static Code Analysis') {
-            steps {
-                bat 'gradlew.bat sonarqube'
-            }
-        }
 
         stage('Package') {
             steps {

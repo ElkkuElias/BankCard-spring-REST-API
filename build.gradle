@@ -27,6 +27,7 @@ dependencies {
     implementation 'com.h2database:h2'
     implementation 'org.springframework.data:spring-data-commons'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    runtimeOnly 'mysql:mysql-connector-java'
 }
 
 tasks.named('test') {
